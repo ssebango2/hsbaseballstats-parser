@@ -1,10 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
+
 
 interface CsvRow {
   [key: string]: string | number;
 }
+
+const StyledLabel = styled.label`
+  color: blue;  /* Change to any color you want */
+  font-size: 16px;  /* Adjust the font size */
+`;
+
 
 const DisplayCsv: React.FC = () => {
   const [csvData, setCsvData] = useState<CsvRow[]>([]);
@@ -15,6 +23,7 @@ const DisplayCsv: React.FC = () => {
   const [sortColumn, setSortColumn] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filtered, setFiltered] = useState<boolean>(false);
+  const [highlightedColumn, setHighlightedColumn] = useState<string>(''); // State to track highlighted column
 
   const excludedColumns = ['Number', 'FC', 'GS', 'LOB']; // Columns to exclude
 
@@ -59,17 +68,15 @@ const DisplayCsv: React.FC = () => {
     try {
       let combinedData: CsvRow[] = [];
 
-      // Exclude league_stats.csv when fetching data for "All"
       const filesToFetch = csvFiles.filter(file => file !== 'league_stats.csv');
 
       for (const file of filesToFetch) {
-        const teamName = file.replace('_stats.csv', ''); // Extract team name
+        const teamName = file.replace('_stats.csv', '');
         const response = await fetch(`/api/readCsv?team=${teamName}`);
         const result = await response.json();
 
         if (response.ok) {
-          const data = parseCsvData(result.data, true); // Parse and append data
-          // Add team column right after the 'Name' column
+          const data = parseCsvData(result.data, true);
           const dataWithTeam = data.map(row => {
             const { Name, ...rest } = row;
             return { Name, Team: teamName, ...rest };
@@ -78,7 +85,7 @@ const DisplayCsv: React.FC = () => {
         }
       }
 
-      setOriginalData(combinedData); // Store original data for undo functionality
+      setOriginalData(combinedData);
       setCsvData(combinedData);
       setError('');
     } catch (err) {
@@ -95,9 +102,8 @@ const DisplayCsv: React.FC = () => {
     const parsedData = rows.slice(1).map((row) => {
       const values = row.split(',');
 
-      // Only create a row if it has meaningful content
       if (values.every(value => value.trim() === '')) {
-        return null; // Skip empty rows
+        return null;
       }
 
       const rowData: CsvRow = {};
@@ -105,13 +111,12 @@ const DisplayCsv: React.FC = () => {
         rowData[header] = isNaN(Number(values[index])) ? values[index].trim() : Number(values[index]);
       });
 
-      // Skip rows where the 'Number' is 0 and all other stats are blank or 0
       if (rowData['Number'] === 0 && Object.values(rowData).every(value => value === '' || value === 0)) {
         return null;
       }
 
       return rowData;
-    }).filter(row => row !== null); // Filter out any null rows
+    }).filter(row => row !== null);
 
     if (returnData) {
       return parsedData as CsvRow[];
@@ -120,14 +125,11 @@ const DisplayCsv: React.FC = () => {
     return parsedData as CsvRow[];
   };
 
-  // Function to toggle filter based on minimum plate appearance requirement
   const toggleFilterByPlateAppearance = () => {
     if (filtered) {
-      // Undo filter by restoring original data
       setCsvData(originalData);
       setFiltered(false);
     } else {
-      // Apply filter
       const maxGames = Math.max(...originalData.map(row => (typeof row['Games'] === 'number' ? row['Games'] : 0)));
       const minPlateAppearance = 2.41 * maxGames;
 
@@ -151,7 +153,7 @@ const DisplayCsv: React.FC = () => {
       fetchCsvData(selectedFile);
     }
 
-    setFiltered(false); // Reset filter status on new file selection
+    setFiltered(false);
   };
 
   const handleSort = (column: string) => {
@@ -166,20 +168,20 @@ const DisplayCsv: React.FC = () => {
     });
 
     setCsvData(sortedData);
+    setHighlightedColumn(column); // Set highlighted column to the sorted column
   };
 
-  // Format numbers to three decimal places
   const formatNumber = (value: any): string => {
     return typeof value === 'number' ? value.toFixed(3) : value;
   };
 
   return (
     <div>
-      <h2>Display CSV Data</h2>
-      <label htmlFor="file-select">Choose a file:</label>
+      <h2 style={{ color: 'blue'}}>Display CSV Data</h2>
+      <StyledLabel htmlFor="file-select">Choose a file:</StyledLabel>
       <select id="file-select" value={selectedFile} onChange={handleFileChange} className="select">
         <option value="">--Select a file--</option>
-        <option value="all">All</option> {/* Option to display all tables, excluding league_stats.csv */}
+        <option value="all">All</option>
         {csvFiles.map((file, index) => (
           <option key={index} value={file}>
             {file.replace('_stats.csv', '')}
@@ -187,7 +189,14 @@ const DisplayCsv: React.FC = () => {
         ))}
       </select>
 
-      <button onClick={toggleFilterByPlateAppearance} className="button" disabled={csvData.length === 0}>
+      <button 
+        onClick={toggleFilterByPlateAppearance} 
+        className="button" 
+        disabled={csvData.length === 0}
+        style={{
+          color: filtered ? 'blue' : 'black'  // Change text color based on filtered state
+        }}
+      >
         {filtered ? 'Undo Filter' : 'Apply Filter by Minimum Plate Appearances'}
       </button>
 
@@ -198,12 +207,12 @@ const DisplayCsv: React.FC = () => {
             <thead>
               <tr>
                 {Object.keys(csvData[0])
-                  .filter(header => !excludedColumns.includes(header)) // Exclude specified columns
+                  .filter(header => !excludedColumns.includes(header))
                   .map((header, index) => (
                     <th
                       key={index}
                       onClick={() => handleSort(header)}
-                      className={header === 'Name' ? 'sticky-column' : ''}
+                      className={`${header === 'Name' ? 'sticky-column' : ''} ${highlightedColumn === header ? 'highlight-column' : ''}`}
                     >
                       {header} {sortColumn === header ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
                     </th>
@@ -213,18 +222,21 @@ const DisplayCsv: React.FC = () => {
             <tbody>
               {csvData.map((row, rowIndex) => (
                 <tr key={rowIndex}>
-                  {Object.entries(row)
-                    .filter(([key]) => !excludedColumns.includes(key)) // Exclude specified columns
-                    .map(([key, value], colIndex) => (
-                      <td key={colIndex} className={key === 'Name' ? 'sticky-column' : ''}>
-                        {['AVG', 'OBP', 'SLG', 'OPS', 'BABIP', 'ISOP', 'wOBA'].includes(key)
-                          ? formatNumber(value)
-                          : value}
-                      </td>
-                    ))}
-                </tr>
+                {Object.entries(row)
+                .filter(([key]) => !excludedColumns.includes(key))
+                .map(([key, value], colIndex) => (
+                  <td 
+                    key={colIndex} 
+                    className={`${key === 'Name' ? 'sticky-column' : ''} ${key === highlightedColumn ? 'highlight-column' : ''}`}
+                  >
+                  {['AVG', 'OBP', 'SLG', 'OPS', 'BABIP', 'ISOP', 'wOBA'].includes(key)
+                ? formatNumber(value)
+                    : value}
+                  </td>
               ))}
-            </tbody>
+            </tr>
+                    ))}
+              </tbody>
           </table>
         </div>
       )}

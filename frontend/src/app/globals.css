@@ -33,22 +33,60 @@ body {
 }
 
 /* styles/globals.css */
+
+/* Container for horizontal scrolling */
+.table-container {
+  overflow-x: auto;
+  width: 100%;
+  border: 1px solid #ccc; /* Optional: Add border around the table */
+}
+
+/* General table styles */
 .table {
   width: 100%;
   border-collapse: collapse;
+  border-spacing: 0; /* Remove spacing for a solid border look */
 }
 
+/* Table headers and cells */
 .table th,
 .table td {
   padding: 10px;
-  border: 1px solid #ccc;
   text-align: left;
-  color: black; /* This sets the text color to black */
-  background-color: #fff; /* Optional: set the background color */
+  background-color: #fff; /* Background color for cells */
+  color: #000; /* Text color */
+  border: 1px solid #ddd; /* Light border color */
 }
 
 .table th {
-  cursor: pointer;
   background-color: #f0f0f0; /* Slightly different background for headers */
+  color: #000; /* Text color for headers */
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer; /* Pointer cursor to indicate clickability */
 }
 
+/* Highlight effect for the clicked column */
+.table th.highlight-column,
+.table td.highlight-column {
+  border-left: 2px solid red;
+  border-right: 2px solid red;
+}
+
+/* Alternate row background for better readability */
+.table tr:nth-child(even) {
+  background-color: #f9f9f9; /* Light grey background for even rows */
+}
+
+.table tr:hover {
+  background-color: #e0e0e0; /* Highlight row on hover */
+}
+
+/* Sticky column for player's name */
+.sticky-column {
+  position: sticky;
+  left: 0;
+  background-color: #f0f0f0; /* Match the header background color */
+  z-index: 1; /* Ensure it stays on top of other cells */
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1); /* Shadow for better visibility */
+}
